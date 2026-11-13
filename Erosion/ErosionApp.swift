@@ -94,6 +94,7 @@ struct ErosionApp: App {
                 print(L("[*] 运行环境：\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)，设备标识符：\(machineName()) (\(buildNumber()))"))
                 if !isSupported() && !weOnADebugBuild {
                     Alertinator.shared.alert(title: L("当前 \(device.systemName) 版本暂不支持！"), body: AppMsg.unsupported, showCancel: false, actionLabel: "退出", action: { exitinator() })
+                    return
                 }
                 group = wq.getAppGroup()
                 print(L("(wq) 当前使用 App Group：\(group)"))

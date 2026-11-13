@@ -10,24 +10,12 @@ import Foundation
 import UIKit
 
 let vrs = ProcessInfo.processInfo.operatingSystemVersion
-// rave is the internal codename for ios 27
 func raveSupported() -> Bool {
-    // Skadz 2026-11-08:
-    //   we're updating to worse_query which is at the moment a 0day
-    //   add back in and update whenever it gets patched ig
-    return vrs.majorVersion >= 27
+    SystemCompatibility.supportsMobileGestalt(vrs)
 }
 
 func isSupported() -> Bool {
-    // Skadz 2026-11-08:
-    //   we're updating to worse_query which is at the moment a 0day
-    //   add back in and update whenever it gets patched ig
-    return true
-    
-//    if (vrs.majorVersion == 26 && vrs.minorVersion < 7) || raveSupported() {
-//        return true
-//    }
-//    return false
+    SystemCompatibility.supportsApp(vrs)
 }
 
 func doubleSysVrs() -> Double {

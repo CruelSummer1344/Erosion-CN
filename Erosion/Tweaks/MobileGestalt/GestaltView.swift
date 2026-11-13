@@ -40,6 +40,7 @@ struct GestaltView: View {
     @State private var hasWriteAccess = false
     @State private var showBackupImporter = false
     @State private var dualVaultReady = false
+    @State private var vaultSyncWarning: String?
 
     private struct MGDiffPreviewPayload: Identifiable {
         let id = UUID()
@@ -75,7 +76,7 @@ struct GestaltView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(dualVaultReady ? L("双重原厂安全备份已锁定") : L("本地原厂备份已就绪"))
                                 .font(.subheadline.weight(.semibold))
-                            Text(dualVaultReady ? L("沙盒备份 + 系统金库双冗余 · SHA-256 已校验（卸载重装不丢失）") : L("已启用 SHA-256 完整性校验与防零字节原位回滚"))
+                            Text(dualVaultReady ? L("本地与系统金库备份一致，SHA-256 已校验；建议另行导出备份。") : (vaultSyncWarning ?? L("仅有本地备份；卸载应用前请先导出备份。")))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -722,7 +723,7 @@ struct GestaltView: View {
                                             .foregroundStyle(dualVaultReady ? Color.green : .secondary)
                                     }
                                 } footer: {
-                                    Text("防白苹果安全协议已永久锁定无零字节窗口原位覆盖（pwrite + F_FULLFSYNC）与系统级安全金库双备份冗余，即使侧载掉签卸载重装应用也不会丢失原厂初始备份。")
+                                    Text("写入会保留原文件并验证读回结果，失败时尝试回滚。写入期间断电或进程退出仍可能造成部分写入；系统金库是否同步请以上方状态为准。")
                                 }
                             }
                             .navigationTitle("Gestalt 设置")
@@ -843,7 +844,7 @@ struct GestaltView: View {
                         } header: {
                             Text("共 \(payload.diffs.count) 项键值变更")
                         } footer: {
-                            Text("点击“确认写入”后将自动备份当前缓存、执行原位写入并进行完整读回校验；若校验异常将自动回滚原文件。")
+                            Text("确认后会先保存修改前快照，再原位写入并读回校验。失败时尝试回滚；写入期间请保持供电，不要退出应用。")
                         }
                     }
                     .navigationTitle("变更对比预览")
@@ -902,7 +903,7 @@ struct GestaltView: View {
                     hasLoadedInitialData = true
                     store.mgCurrentDict = mgLoadData()
                 } else {
-                    dualVaultReady = mgHasSyncedSystemVault()
+                    dualVaultReady = mgSystemVaultMatchesLocalBackup()
                 }
             }
     }
@@ -1091,7 +1092,8 @@ struct GestaltView: View {
                 throw preCheck.1
             }
             let vaultOutcome = try mgEnsureOriginalBackupWithVault(liveData: mgData)
-            dualVaultReady = mgHasSyncedSystemVault()
+            dualVaultReady = mgSystemVaultMatchesLocalBackup()
+            vaultSyncWarning = vaultOutcome.vaultWarning
             if vaultOutcome.recoveredFromVault {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     Alertinator.shared.alert(
@@ -1164,8 +1166,12 @@ struct GestaltView: View {
                             body: L("原始备份文件来自旧版系统 (\(ogBuild))，而当前系统已更新至 \(curBuild)（当前缓存处于原厂未修改状态）。\n\n建议立即将原始备份同步更新为 \(curBuild) 的原厂文件，以免后续误用旧版备份覆盖。"),
                             actionLabel: L("更新原始备份"),
                             action: {
-                                try? mgSaveOriginalBackupWithDigest(mgData)
-                                store.mgCurrentDict = mgLoadData()
+                                do {
+                                    vaultSyncWarning = try mgSaveOriginalBackupWithDigest(mgData)
+                                    store.mgCurrentDict = mgLoadData()
+                                } catch {
+                                    Alertinator.shared.alert(title: L("备份更新失败"), body: error.localizedDescription)
+                                }
                             }
                         )
                     } else {
@@ -1178,7 +1184,7 @@ struct GestaltView: View {
         } catch {
             print("(mg) failed to get mobilegestalt: \(error.localizedDescription)")
             Haptic.shared.play(.heavy)
-            Alertinator.shared.alert(title: L("读取 MobileGestalt 失败！"), body: L("当前无法正常加载配置文件，请返回上一页并检查日志。"), showCancel: false, actionLabel: L("返回"), action: { dismiss() })
+            Alertinator.shared.alert(title: L("读取 MobileGestalt 失败！"), body: L("当前无法正常加载配置文件，请返回上一页并检查日志。") + "\n" + error.localizedDescription, showCancel: false, actionLabel: L("返回"), action: { dismiss() })
         }
         
         return [:]

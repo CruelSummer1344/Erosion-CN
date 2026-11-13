@@ -4,7 +4,7 @@
   <br>
   <h1>Erosion-CN (Bilingual Edition)</h1>
   <p>An iOS / iPadOS System Customization, Cross-Container &amp; Bootloop-Hardened MobileGestalt Research Toolkit powered by <a href="https://github.com/forcequitOS/worse_query">worse_query</a></p>
-  <p>Supports iOS / iPadOS 27.0 – 27.2.1 &amp; 27.3 beta 1 (Full Support) and iOS / iPadOS 26.x (Partial Support).</p>
+  <p>Supports iOS / iPadOS 27.0 – 27.2.1 and 26.0 – 26.7.2 (Partial Support).</p>
   <p><a href="./README.md">简体中文文档</a> · <strong>English</strong></p>
   <a href="https://github.com/Kianuni/Erosion-CN/releases/latest"><img alt="GitHub Releases" src="https://img.shields.io/github/v/release/Kianuni/Erosion-CN?style=flat-square&color=CF7D46&label=Latest%20Release"></a>
   <a href="https://github.com/jailbreakdotparty/Erosion"><img alt="Upstream Repo" src="https://img.shields.io/badge/Upstream-jailbreakdotparty%2FErosion-3868DB?style=flat-square"></a>
@@ -37,7 +37,7 @@
    - **Live `MGCopyAnswer` Inspector (`MGInspectorView`)**: Compares factory backup values, staged `CacheData / CacheExtra` values, and live `MGCopyAnswer` answers side by side across all `720+` dynamic slots.
 
 4. **Dual-Vault Factory Backup & One-Tap Factory Restore**
-   - Mirrors your clean `OriginalGestalt.plist` + `SHA-256` digest into both app storage and a persistent shared system vault so your clean factory backup survives app uninstalls/reinstalls.
+   - Mirrors your clean `OriginalGestalt.plist` + `SHA-256` digest into both app storage and a persistent shared system vault and verifies both files after writing. A failed mirror is shown as local-only; export a separate backup before uninstalling. Recovery requires the vault to remain intact and match the device and OS. SHA-256 verifies integrity, not factory provenance.
    - **One-Tap Factory Restore** verifies `SHA-256`, `CacheVersion`, `CacheUUID`, `CacheData` byte length, and kernel `ProductType`, restoring factory state and cleaning up Lock Screen footnote, asset tag, fake supervision leftovers, and keypad caches in one step.
 
 5. **`CSStore2` Millisecond Container Mapper & Cross-Container Modules (`v0.8.x – v0.9.0`)**
@@ -49,14 +49,18 @@
    - **App Group Hub & Safari Bookmarks Exporter (`AppGroupHubView`)**: Export Safari bookmarks (HTML / JSON) and generate Surge `.sgmodule` / Stash `.stoverride` routing rules.
    - **Voice Memos & Call Recording Extractor (`VoiceMemosAIView`)**: Batch-export lossless `.m4a` recordings titled via `CloudRecordings.db` and inspect on-device AI/speech model caches.
 
+In-place writes preserve the inode but are not crash-atomic: power loss or process termination can leave partial data. A failed pre-write snapshot stops MobileGestalt writes; rollback failures are explicitly reported.
+
 ---
 
 ## Compatibility
 
+This fork does not enable iOS 27.3 until an independently verified beta 1 build identifier is recorded. The numeric version alone cannot distinguish beta 1 from later betas or the final release.
+
 > [!IMPORTANT]
 > Always create a full computer backup before modifying system files. Use at your own risk on devices you own.
 
-- **iOS / iPadOS 27.0 – 27.2.1 & 27.3 beta 1**: Full support (including `MobileGestalt` read/write and `CacheData` slot unlocks).
+- **iOS / iPadOS 27.0 – 27.2.1**: Supported (including `MobileGestalt` read/write and `CacheData` slot unlocks).
   - ⚠️ **iOS 27.3 beta 1 limitation on China (`CH/A`) hardware**: writes and most features work, but **generative cloud features (High-Quality Clean Up / Extend / Reframe, Camera `SIRI`) are blocked locally** (log: `Eligibility returned no CN region policy on a CH region code device`) and cannot be bypassed via MobileGestalt. Stay on / return to iOS 27.2.x if you need them. See FAQ #2.
 - **iOS / iPadOS 26.0 – 26.7.2**: Partial support (PosterBoard wallpapers, Keypad themes, Lock Screen footnote, container browser, and read-only diagnostics; iOS 26 sandbox blocks writing to `com.apple.MobileGestalt.plist`).
 
@@ -112,3 +116,7 @@
 - Exploit: **[forcequitOS/worse_query](https://github.com/forcequitOS/worse_query)**
 - References & Special Thanks: `huamidev (GestaltX)`, `kolbicz (WQFiles)`, `KirbySD`, `PoomSmart (MGKeys)`
 - Licensed under **[GPLv3](./LICENSE)**.
+
+## Development checks
+
+Run `bash scripts/test-regressions.sh` on macOS. The regression checks cover version boundaries, partial writes, rollback failures, and backup/digest write failures. CI runs them before building the IPA. Device exploit compatibility still requires hardware validation.

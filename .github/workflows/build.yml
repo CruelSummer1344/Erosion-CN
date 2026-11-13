@@ -2,6 +2,9 @@ name: Build IPA
 
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
   build:
@@ -9,6 +12,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Run storage and compatibility regressions
+        run: bash scripts/test-regressions.sh
 
       - name: Build Erosion IPA
         run: |

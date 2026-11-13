@@ -266,29 +266,33 @@ enum MGFactoryRestoreOutcome {
     case failed(reason: String)
 }
 
-func mgSyncSystemVaultBackup(_ data: Data, hexDigest: String) {
+/// Returns a user-visible warning when the local backup exists but the mirror is unavailable.
+func mgSyncSystemVaultBackup(_ data: Data) -> String? {
     let vaultDir = MGURL.systemVaultGestaltURL.deletingLastPathComponent()
     if !FileManager.default.isWritableFile(atPath: vaultDir.path) {
         _ = wq.grantAccess(path: vaultDir.path)
     }
-    guard FileManager.default.isWritableFile(atPath: vaultDir.path) else { return }
     do {
-        try data.write(to: MGURL.systemVaultGestaltURL, options: .atomic)
+        guard FileManager.default.isWritableFile(atPath: vaultDir.path) else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        try VerifiedBackup.write(data, to: MGURL.systemVaultGestaltURL, digestURL: MGURL.systemVaultSHA256URL)
         mgExcludeFromCloudBackup(MGURL.systemVaultGestaltURL)
-        try Data(hexDigest.utf8).write(to: MGURL.systemVaultSHA256URL, options: .atomic)
         mgExcludeFromCloudBackup(MGURL.systemVaultSHA256URL)
+        return nil
     } catch {
-        print("(mg-vault) sync system vault failed: \(error.localizedDescription)")
+        let warning = L("系统金库同步失败，当前仅有本地备份；卸载应用前请导出备份。原因：\(error.localizedDescription)")
+        print("(mg-vault) \(warning)")
+        return warning
     }
 }
 
-func mgSaveOriginalBackupWithDigest(_ data: Data) throws {
-    let hex = mgComputeSHA256Hex(data)
-    try data.write(to: MGURL.savedGestaltURL, options: .atomic)
+@discardableResult
+func mgSaveOriginalBackupWithDigest(_ data: Data) throws -> String? {
+    try VerifiedBackup.write(data, to: MGURL.savedGestaltURL, digestURL: MGURL.savedGestaltSHA256URL)
     mgExcludeFromCloudBackup(MGURL.savedGestaltURL)
-    try Data(hex.utf8).write(to: MGURL.savedGestaltSHA256URL, options: .atomic)
     mgExcludeFromCloudBackup(MGURL.savedGestaltSHA256URL)
-    mgSyncSystemVaultBackup(data, hexDigest: hex)
+    return mgSyncSystemVaultBackup(data)
 }
 
 func mgVerifyBackupFileIntegrity(plistURL: URL, sha256URL: URL, requireDigestFile: Bool = false) -> (Bool, String) {
@@ -316,15 +320,24 @@ func mgVerifyBackupFileIntegrity(plistURL: URL, sha256URL: URL, requireDigestFil
 }
 
 func mgVerifyOriginalBackupIntegrity() -> (Bool, String) {
-    return mgVerifyBackupFileIntegrity(plistURL: MGURL.savedGestaltURL, sha256URL: MGURL.savedGestaltSHA256URL)
+    return mgVerifyBackupFileIntegrity(plistURL: MGURL.savedGestaltURL, sha256URL: MGURL.savedGestaltSHA256URL, requireDigestFile: true)
 }
 
 func mgHasSyncedSystemVault() -> Bool {
-    return mgVerifyBackupFileIntegrity(
+    guard mgVerifyBackupFileIntegrity(
         plistURL: MGURL.systemVaultGestaltURL,
         sha256URL: MGURL.systemVaultSHA256URL,
         requireDigestFile: true
-    ).0
+    ).0 else { return false }
+    return true
+}
+
+func mgSystemVaultMatchesLocalBackup() -> Bool {
+    // A valid but stale mirror must not be presented as a backup of the current local baseline.
+    guard mgHasSyncedSystemVault(), mgVerifyOriginalBackupIntegrity().0,
+          let local = try? Data(contentsOf: MGURL.savedGestaltURL),
+          let vault = try? Data(contentsOf: MGURL.systemVaultGestaltURL) else { return false }
+    return local == vault
 }
 
 func mgDetectSuspectedThirdPartyModification(in dict: NSDictionary) -> String? {
@@ -353,7 +366,7 @@ func mgDetectSuspectedThirdPartyModification(in dict: NSDictionary) -> String? {
 /// - Recovers true factory backup from SystemGroup vault across sideload app uninstall/reinstall;
 /// - Mirrors valid local backup into SystemGroup vault if missing;
 /// - Warns if first-ever install encounters an already-modified system plist.
-func mgEnsureOriginalBackupWithVault(liveData: Data) throws -> (recoveredFromVault: Bool, suspectedDirtyWarning: String?) {
+func mgEnsureOriginalBackupWithVault(liveData: Data) throws -> (recoveredFromVault: Bool, suspectedDirtyWarning: String?, vaultWarning: String?) {
     let liveDict = (try? PropertyListSerialization.propertyList(from: liveData, options: [], format: nil) as? NSDictionary) ?? [:]
     let liveBuild = liveDict["CacheVersion"] as? String ?? ""
     let liveUUID = liveDict["CacheUUID"] as? String ?? ""
@@ -370,18 +383,22 @@ func mgEnsureOriginalBackupWithVault(liveData: Data) throws -> (recoveredFromVau
         }
         mgExcludeFromCloudBackup(MGURL.savedGestaltURL)
 
+        let integrity = mgVerifyOriginalBackupIntegrity()
+        guard integrity.0 else {
+            throw NSError(domain: "Erosion.Backup", code: 2, userInfo: [NSLocalizedDescriptionKey: integrity.1])
+        }
+        var vaultWarning: String?
         // Sync to SystemGroup vault if vault is missing or outdated while local backup matches live OS build
-        if mgVerifyOriginalBackupIntegrity().0,
-           let localData = try? Data(contentsOf: MGURL.savedGestaltURL),
+        if let localData = try? Data(contentsOf: MGURL.savedGestaltURL),
            let localDict = NSDictionary(contentsOf: MGURL.savedGestaltURL) {
             let localBuild = localDict["CacheVersion"] as? String ?? ""
-            let vaultValid = mgHasSyncedSystemVault()
+            let vaultValid = mgSystemVaultMatchesLocalBackup()
             let vaultBuild = (NSDictionary(contentsOf: MGURL.systemVaultGestaltURL)?["CacheVersion"] as? String) ?? ""
             if !vaultValid || (!localBuild.isEmpty && localBuild == liveBuild && vaultBuild != liveBuild) {
-                mgSyncSystemVaultBackup(localData, hexDigest: mgComputeSHA256Hex(localData))
+                vaultWarning = mgSyncSystemVaultBackup(localData)
             }
         }
-        return (false, nil)
+        return (false, nil, vaultWarning)
     }
 
     // Documents/OriginalGestalt.plist is missing (first install OR sideload uninstall+reinstall):
@@ -412,14 +429,14 @@ func mgEnsureOriginalBackupWithVault(liveData: Data) throws -> (recoveredFromVau
             try Data(hex.utf8).write(to: MGURL.savedGestaltSHA256URL, options: .atomic)
             mgExcludeFromCloudBackup(MGURL.savedGestaltSHA256URL)
             print(L("[*] (mg-vault) 检测到应用重装，已从系统安全金库无损找回原厂备份 (\(vaultBuild))！"))
-            return (true, nil)
+            return (true, nil, nil)
         }
     }
 
     // True first-ever backup on this OS build: inspect whether system plist was already modified by another tool
     let dirtyReason = mgDetectSuspectedThirdPartyModification(in: liveDict)
-    try mgSaveOriginalBackupWithDigest(liveData)
-    return (false, dirtyReason)
+    let vaultWarning = try mgSaveOriginalBackupWithDigest(liveData)
+    return (false, dirtyReason, vaultWarning)
 }
 
 func mgImportExternalOriginalBackup(from externalURL: URL) -> Result<String, Error> {
@@ -470,11 +487,12 @@ func mgImportExternalOriginalBackup(from externalURL: URL) -> Result<String, Err
             mgExcludeFromCloudBackup(archiveURL)
         }
 
-        try mgSaveOriginalBackupWithDigest(data)
+        let vaultWarning = try mgSaveOriginalBackupWithDigest(data)
         MGCacheDataCoordinator.shared.clearRecordedBaselines()
         let buildStr = (importedDict["CacheVersion"] as? String) ?? L("当前版本")
         let shaPrefix = String(mgComputeSHA256Hex(data).prefix(12))
-        return .success(L("已成功校验并导入原厂备份（版本：\(buildStr)，机型：\(impProd)，SHA-256：\(shaPrefix)...），同时已同步锁定至系统安全金库。"))
+        let details = L("已成功校验并导入备份（版本：\(buildStr)，机型：\(impProd)，SHA-256：\(shaPrefix)...）。")
+        return .success(details + "\n" + (vaultWarning ?? L("系统金库已同步并读回校验。")))
     } catch {
         return .failure(error)
     }
@@ -496,6 +514,9 @@ func mgResetLocalTweakPreferences() {
 }
 
 func mgExecuteCleanCacheRebuild(alsoResetConfigAndKeypad: Bool = false) -> Result<Void, Error> {
+    guard raveSupported() else {
+        return .failure(NSError(domain: "Erosion.Compatibility", code: 1, userInfo: [NSLocalizedDescriptionKey: AppMsg.unsupported]))
+    }
     let fm = FileManager.default
     let cacheDir = MGURL.fsGestaltURL.deletingLastPathComponent()
     if !fm.isWritableFile(atPath: cacheDir.path) {
@@ -529,6 +550,7 @@ func mgExecuteCleanCacheRebuild(alsoResetConfigAndKeypad: Bool = false) -> Resul
 }
 
 func mgExecuteFactoryRestore(alsoResetConfigAndKeypad: Bool) -> MGFactoryRestoreOutcome {
+    guard raveSupported() else { return .failed(reason: AppMsg.unsupported) }
     let fm = FileManager.default
     let cacheDir = MGURL.fsGestaltURL.deletingLastPathComponent()
     if !fm.isWritableFile(atPath: cacheDir.path) {
@@ -663,6 +685,7 @@ func mgIsDangerousCacheExtraKey(_ key: String) -> String? {
 }
 
 func mgWriteDetailed(_ data: Data, allowVerifiedFactoryRestore: Bool = false) -> (Bool, String) {
+    guard raveSupported() else { return (false, AppMsg.unsupported) }
     let preCheck = mgValidatePlistData(data)
     guard preCheck.0 else {
         print("(mg) pre-write validation failed: \(preCheck.1)")
@@ -695,8 +718,15 @@ func mgWriteDetailed(_ data: Data, allowVerifiedFactoryRestore: Bool = false) ->
     }
 
     // Save pre-apply snapshot before touching system file (excluded from iCloud/Finder device migration)
-    try? originalBytes.write(to: MGURL.preApplyGestaltURL, options: .atomic)
-    mgExcludeFromCloudBackup(MGURL.preApplyGestaltURL)
+    do {
+        try originalBytes.write(to: MGURL.preApplyGestaltURL, options: .atomic)
+        guard try Data(contentsOf: MGURL.preApplyGestaltURL) == originalBytes else {
+            throw NSError(domain: "Erosion.Backup", code: 3, userInfo: [NSLocalizedDescriptionKey: L("修改前快照读回校验失败")])
+        }
+        mgExcludeFromCloudBackup(MGURL.preApplyGestaltURL)
+    } catch {
+        return (false, L("无法保存修改前快照，已中止系统写入：\(error.localizedDescription)"))
+    }
 
     // Unconditionally enforce safe in-place write (pwrite + tail truncate + F_FULLFSYNC) to preserve Inode & POSIX attributes
     let res = writeFileAtomically(data, to: MGURL.fsGestaltURL)

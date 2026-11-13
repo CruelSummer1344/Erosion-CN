@@ -5271,6 +5271,23 @@
         }
       }
     },
+    "仅有本地备份；卸载应用前请先导出备份。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the local backup is available. Export it before uninstalling the app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅有本地备份；卸载应用前请先导出备份。"
+          }
+        }
+      }
+    },
     "从 InternalDaemon 只读解析 com.apple.LaunchServices-*.csstore 二进制库（魔数 bdsl），可在数十毫秒内完成全机应用容器、扩展插件与 AppGroup 映射并显示应用名称；若读取失败会自动无缝回退至传统 pathleak 遍历。": {
       "extractionState": "manual",
       "localizations": {
@@ -5573,6 +5590,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "修改前后 CacheData 校验未通过，已拒绝写入。"
+          }
+        }
+      }
+    },
+    "修改前快照读回校验失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pre-write snapshot readback verification failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修改前快照读回校验失败"
           }
         }
       }
@@ -6240,6 +6274,23 @@
         }
       }
     },
+    "写入会保留原文件并验证读回结果，失败时尝试回滚。写入期间断电或进程退出仍可能造成部分写入；系统金库是否同步请以上方状态为准。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writes preserve the file inode and verify readback, with best-effort rollback on failure. Power loss or process termination can still leave partial data. See the status above for system vault synchronization."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入会保留原文件并验证读回结果，失败时尝试回滚。写入期间断电或进程退出仍可能造成部分写入；系统金库是否同步请以上方状态为准。"
+          }
+        }
+      }
+    },
     "写入到目标目录": {
       "extractionState": "manual",
       "localizations": {
@@ -6253,6 +6304,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "写入到目标目录"
+          }
+        }
+      }
+    },
+    "写入失败且无法确认回滚成功；请勿重启设备，请使用备份恢复。写入错误：%@；回滚错误：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write failed and rollback could not be verified. Do not restart the device; restore from a backup. Write error: %@; rollback error: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入失败且无法确认回滚成功；请勿重启设备，请使用备份恢复。写入错误：%@；回滚错误：%@"
+          }
+        }
+      }
+    },
+    "写入失败，已读回确认原文件恢复：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write failed; readback confirmed that the original file was restored: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入失败，已读回确认原文件恢复：%@"
           }
         }
       }
@@ -8178,6 +8263,23 @@
         }
       }
     },
+    "备份写后读回校验失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup readback verification failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份写后读回校验失败"
+          }
+        }
+      }
+    },
     "备份存档": {
       "extractionState": "manual",
       "localizations": {
@@ -8242,6 +8344,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "备份文件结构已损坏：%@"
+          }
+        }
+      }
+    },
+    "备份更新失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup update failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份更新失败"
           }
         }
       }
@@ -10150,6 +10269,23 @@
         }
       }
     },
+    "已成功校验并导入备份（版本：%@，机型：%@，SHA-256：%@...）。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup verified and imported (build: %@, device: %@, SHA-256: %@...)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已成功校验并导入备份（版本：%@，机型：%@，SHA-256：%@...）。"
+          }
+        }
+      }
+    },
     "已成功清理 %lld 个应用的冗余缓存与临时文件，共释放 %@ 存储空间！": {
       "extractionState": "manual",
       "localizations": {
@@ -11523,6 +11659,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "当前系统库未解析出有效的 wapi 槽位，拒绝修改该项。"
+          }
+        }
+      }
+    },
+    "当前系统版本尚未通过本项目兼容性验证。支持 iOS / iPadOS 26.0–26.7.2（部分功能）与 27.0–27.2.1。27.3 测试版需核对具体构建号后才能启用。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This OS version has not been verified by this project. Supported: iOS / iPadOS 26.0–26.7.2 (partial features) and 27.0–27.2.1. A verified build identifier is required before enabling a 27.3 beta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前系统版本尚未通过本项目兼容性验证。支持 iOS / iPadOS 26.0–26.7.2（部分功能）与 27.0–27.2.1。27.3 测试版需核对具体构建号后才能启用。"
           }
         }
       }
@@ -13669,6 +13822,23 @@
         }
       }
     },
+    "无法保存修改前快照，已中止系统写入：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not save the pre-write snapshot. System write cancelled: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存修改前快照，已中止系统写入：%@"
+          }
+        }
+      }
+    },
     "无法加载目录文件！": {
       "extractionState": "manual",
       "localizations": {
@@ -14855,6 +15025,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "未设置"
+          }
+        }
+      }
+    },
+    "本地与系统金库备份一致，SHA-256 已校验；建议另行导出备份。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local and system vault backups match and SHA-256 is verified. Export a separate copy as well."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地与系统金库备份一致，SHA-256 已校验；建议另行导出备份。"
           }
         }
       }
@@ -17970,6 +18157,23 @@
         }
       }
     },
+    "确认后会先保存修改前快照，再原位写入并读回校验。失败时尝试回滚；写入期间请保持供电，不要退出应用。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pre-write snapshot is saved before writing in place and verifying readback. Failures trigger a rollback attempt. Keep the device powered and do not exit the app while writing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认后会先保存修改前快照，再原位写入并读回校验。失败时尝试回滚；写入期间请保持供电，不要退出应用。"
+          }
+        }
+      }
+    },
     "确认恢复出厂参数": {
       "extractionState": "manual",
       "localizations": {
@@ -18850,6 +19054,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "系统配置描述文件目录"
+          }
+        }
+      }
+    },
+    "系统金库同步失败，当前仅有本地备份；卸载应用前请导出备份。原因：%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System vault sync failed. Only the local backup is available; export it before uninstalling. Reason: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统金库同步失败，当前仅有本地备份；卸载应用前请导出备份。原因：%@"
+          }
+        }
+      }
+    },
+    "系统金库已同步并读回校验。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System vault synchronized and verified by readback."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统金库已同步并读回校验。"
           }
         }
       }
